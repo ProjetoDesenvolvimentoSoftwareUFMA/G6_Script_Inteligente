@@ -10,11 +10,10 @@ interface ApiKey {
 
 const UserDashboard: React.FC = () => {
   const [script, setScript] = useState(""); // Estado para armazenar o script inserido
-  const [fileContent, setFileContent] = useState(""); // Estado para armazenar o conteúdo do arquivo
   const [corrections, setCorrections] = useState<string[]>([]); // Estado para armazenar as correções
   const [selectedCorrection, setSelectedCorrection] = useState(""); // Estado para armazenar a correção selecionada
   const [outputMessage, setOutputMessage] = useState(""); // Estado para armazenar a mensagem de saída
-  const [showSupportMessage, setShowSupportMessage] = useState(false); // Estado para controlar a exibição da mensagem de suporte
+  const [showCorrections, setShowCorrections] = useState(false); // Estado para controlar a exibição das correções
   const [apiKeys] = useState<ApiKey[]>([
     { name: "GPT-4", key: "gpt3key123" },
     { name: "Modelo Local", key: "localModel" },
@@ -24,7 +23,6 @@ const UserDashboard: React.FC = () => {
   const [messages, setMessages] = useState<{ role: string; content: string }[]>(
     []
   );
-  const [message, setMessage] = useState("");
   const isMounted = useRef(true);
 
   useEffect(() => {
@@ -53,7 +51,6 @@ const UserDashboard: React.FC = () => {
       },
     ];
     setMessages(updatedMessages);
-    setMessage("");
 
     try {
       const response = await createChatCompletion(updatedMessages);
@@ -62,6 +59,7 @@ const UserDashboard: React.FC = () => {
         setMessages([...updatedMessages, chatResponse]);
         setCorrections([chatResponse.content]); // Supondo que a resposta da correção está no conteúdo
         setOutputMessage("Correção gerada com sucesso!");
+        setShowCorrections(true);
       }
     } catch (error) {
       if (isMounted.current) {
@@ -70,16 +68,12 @@ const UserDashboard: React.FC = () => {
     }
   };
 
-  useEffect(() => {
-    if (selectedApiKey) {
-      // Aqui você pode adicionar a lógica para atualizar a API de correção no backend ou em qualquer outro lugar necessário
-    }
-  }, [selectedApiKey]);
-
   const handleScriptChange = (
     event: React.ChangeEvent<HTMLTextAreaElement>
   ) => {
     setScript(event.target.value);
+    event.target.style.height = "auto"; // Redefinir altura para auto antes de ajustar
+    event.target.style.height = `${event.target.scrollHeight}px`; // Ajustar altura conforme o conteúdo
   };
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -89,32 +83,6 @@ const UserDashboard: React.FC = () => {
 
   const handleCorrectionSelect = (correction: string) => {
     setSelectedCorrection(correction);
-  };
-
-  const handleExecute = () => {
-    const isOutputValid = Math.random() > 0.5; // Simulação de validação da saída
-    setOutputMessage(
-      isOutputValid ? "A saída é verdadeira." : "A saída é falsa."
-    );
-  };
-  // Função para lidar com o clique no botão "Enviar para Suporte"
-  const handleSendToSupport = async () => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      setOutputMessage("Usuário não autenticado");
-      return;
-    }
-
-    try {
-      // Supondo que você tenha uma rota no backend para lidar com o envio para suporte
-      const response = await submitScript(token, {
-        content: script,
-      }); // Ajuste conforme necessário para o formato das correções
-      setShowSupportMessage(true);
-      setOutputMessage("Script enviado para suporte com sucesso.");
-    } catch (error) {
-      setOutputMessage("Erro ao enviar script para suporte. Tente novamente.");
-    }
   };
 
   const handleApiKeyChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
@@ -191,22 +159,24 @@ const UserDashboard: React.FC = () => {
         <button
           type="button"
           className="support-button"
-          onClick={handleSendToSupport}
+          onClick={handleMessage}
         >
           Enviar para suporte
         </button>
       </form>
-      <div className="corrections-container">
-        <h2>Possibilidade de Correção</h2>
-        {corrections.map((correction, idx) => (
-          <div key={idx} className="correction-card">
-            <p>{correction}</p>
-            <button onClick={() => handleCorrectionSelect(correction)}>
-              Selecionar
-            </button>
-          </div>
-        ))}
-      </div>
+      {showCorrections && (
+        <div className="corrections-container">
+          <h2>Possibilidade de Correção</h2>
+          {corrections.map((correction, idx) => (
+            <div key={idx} className="correction-card">
+              <p>{correction}</p>
+              <button onClick={() => handleCorrectionSelect(correction)}>
+                Selecionar
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
       {selectedCorrection && (
         <div className="selected-correction-container">
           <h2>Correção Selecionada</h2>
